@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+
+"""
+Script para actualizar el archivo indices/cer.json con el último valor de CER
+obtenido desde la página del BCRA.
+"""
+
 import requests
 from bs4 import BeautifulSoup
 import json
@@ -17,10 +23,10 @@ def fetch_cer_from_bcra():
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, 'html.parser')
 
-    # Buscar la tabla que contiene principales variables (asumimos que hay una sóla)
+    # Busca filas de la tabla que contengan 'CER'
     table = soup.find('table')
     if not table:
-        raise RuntimeError('No se encontró ninguna tabla en la página de BCRA')
+        raise RuntimeError('No se encontró la tabla de Principales Variables')
 
     for row in table.find_all('tr'):
         cols = [td.get_text(strip=True) for td in row.find_all('td')]
@@ -29,19 +35,17 @@ def fetch_cer_from_bcra():
             fecha_str = cols[1]  # ej. '31/07/2025'
             valor_str = cols[2]  # ej. '4,21'
 
-            # Convertir fecha a ISO YYYY-MM-DD
-            try:
-                fecha_dt = datetime.strptime(fecha_str, '%d/%m/%Y')
-            except ValueError:
-                raise RuntimeError(f'Formato de fecha inesperado: {fecha_str}')
+            # Convertir fecha al formato ISO YYYY-MM-DD
+            fecha_dt = datetime.strptime(fecha_str, '%d/%m/%Y')
             fecha_iso = fecha_dt.strftime('%Y-%m-%d')
 
             # Convertir valor a float
+            # Reemplaza punto de miles y coma decimal
             valor_num = float(valor_str.replace('.', '').replace(',', '.'))
 
             return fecha_iso, valor_num
 
-    raise RuntimeError('No se encontró el valor de CER en la tabla')
+    raise RuntimeError('No se encontró el valor de CER en la página')
 
 
 def load_existing_data():
@@ -53,8 +57,7 @@ def load_existing_data():
 
 
 def save_data(data):
-    """Guarda el dict en cer.json con orden por fecha."""
-    # Ordenar por clave
+    """Guarda el dict en cer.json con orden de fechas."""
     ordered = {date: data[date] for date in sorted(data.keys())}
     with open(CER_JSON_PATH, 'w', encoding='utf-8') as f:
         json.dump(ordered, f, ensure_ascii=False, indent=2)
@@ -63,20 +66,20 @@ def save_data(data):
 def main():
     # 1) Obtener dato más reciente del BCRA
     fecha_iso, valor = fetch_cer_from_bcra()
-    print(f'Dato CER extraído: {fecha_iso} -> {valor}')
+    print(f'CER extraído: {fecha_iso} -> {valor}')
 
     # 2) Cargar cer.json existente
     data = load_existing_data()
-    print(f'Entradas actuales en cer.json: {len(data)}')
+    print(f'Entradas actuales: {len(data)}')
 
-    # 3) Agregar si no existe
+    # 3) Añadir si es nuevo
     if fecha_iso in data:
-        print('La fecha ya existe en cer.json. Nada que hacer.')
+        print('La fecha ya existe. No se realizan cambios.')
         return
 
     data[fecha_iso] = valor
     save_data(data)
-    print(f'Nuevo dato guardado en cer.json: {fecha_iso} -> {valor}')
+    print(f'Guardado nuevo CER: {fecha_iso} -> {valor}')
 
 
 if __name__ == '__main__':
