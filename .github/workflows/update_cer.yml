@@ -3,7 +3,7 @@ name: Actualizar CER
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *'  # Ejecuta diariamente a medianoche UTC
 
 jobs:
   update-cer:
@@ -21,7 +21,7 @@ jobs:
 
       - name: Run update_cer script
         run: |
-          "C:\Program Files\Python313\python.exe" update_cer.py
+          & 'C:\Program Files\Python313\python.exe' 'update_cer.py'
 
       - name: Commit and push changes
         run: |
