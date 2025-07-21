@@ -10,15 +10,16 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout repository
+      - name: Checkout repo
         uses: actions/checkout@v3
 
       - name: Install dependencies
         run: |
           & 'C:\Program Files\Python313\python.exe' -m pip install requests beautifulsoup4
 
-      - name: Run update_cer (incluye push)
+      - name: Run update & push via API
         env:
           PAT: ${{ secrets.PAT }}
         run: |
           & 'C:\Program Files\Python313\python.exe' update_cer.py
+
