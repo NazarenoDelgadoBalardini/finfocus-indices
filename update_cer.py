@@ -6,10 +6,14 @@ obtenido desde la página del BCRA.
 """
 
 import requests
+import urllib3
 from bs4 import BeautifulSoup
 import json
 import os
 from datetime import datetime
+
+# Deshabilita warnings de SSL por verify=False
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # URL de la página de BCRA con Principales Variables
 BCRA_URL = 'https://www.bcra.gob.ar/PublicacionesEstadisticas/Principales_variables.asp'
@@ -19,29 +23,23 @@ CER_JSON_PATH = os.path.join(os.path.dirname(__file__), 'indices', 'cer.json')
 
 def fetch_cer_from_bcra():
     """Descarga la página del BCRA y extrae la fecha y el valor del CER más reciente."""
-    # Deshabilita la verificación de SSL para entornos self‑hosted
-resp = requests.get(BCRA_URL, verify=False)
+    resp = requests.get(BCRA_URL, verify=False)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, 'html.parser')
 
-    # Busca filas de la tabla que contengan 'CER'
     table = soup.find('table')
     if not table:
         raise RuntimeError('No se encontró la tabla de Principales Variables')
 
     for row in table.find_all('tr'):
         cols = [td.get_text(strip=True) for td in row.find_all('td')]
-        # Se asume estructura: [Variable, Fecha, Valor]
         if len(cols) >= 3 and 'CER' in cols[0].upper():
-            fecha_str = cols[1]  # ej. '31/07/2025'
-            valor_str = cols[2]  # ej. '4,21'
+            fecha_str = cols[1]  # e.g. '31/07/2025'
+            valor_str = cols[2]  # e.g. '4,21'
 
-            # Convertir fecha al formato ISO YYYY-MM-DD
             fecha_dt = datetime.strptime(fecha_str, '%d/%m/%Y')
             fecha_iso = fecha_dt.strftime('%Y-%m-%d')
 
-            # Convertir valor a float
-            # Reemplaza punto de miles y coma decimal
             valor_num = float(valor_str.replace('.', '').replace(',', '.'))
 
             return fecha_iso, valor_num
@@ -65,15 +63,12 @@ def save_data(data):
 
 
 def main():
-    # 1) Obtener dato más reciente del BCRA
     fecha_iso, valor = fetch_cer_from_bcra()
     print(f'CER extraído: {fecha_iso} -> {valor}')
 
-    # 2) Cargar cer.json existente
     data = load_existing_data()
     print(f'Entradas actuales: {len(data)}')
 
-    # 3) Añadir si es nuevo
     if fecha_iso in data:
         print('La fecha ya existe. No se realizan cambios.')
         return
