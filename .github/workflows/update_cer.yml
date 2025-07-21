@@ -13,29 +13,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install Python requirements
+      - name: Install dependencies
         run: |
           & 'C:\Program Files\Python313\python.exe' -m pip install requests beautifulsoup4
 
-      - name: Run update_cer script
-        run: |
-          & 'C:\Program Files\Python313\python.exe' 'update_cer.py'
-
-      - name: Commit and push changes via SSH
-        shell: powershell
+      - name: Run update_cer (incluye push)
         env:
-          GIT_SSH_COMMAND: "ssh -i C:/actions-runner/id_ed25519 -o StrictHostKeyChecking=no"
+          PAT: ${{ secrets.PAT }}
         run: |
-          # Configura nombre y email
-          git config user.name "${{ github.actor }}"
-          git config user.email "${{ github.actor }}@users.noreply.github.com"
-          # Establece remoto SSH
-          git remote set-url origin git@github.com:NazarenoDelgadoBalardini/finfocus-indices.git
-          # Añade y commitea si hay cambios
-          git add indices/cer.json
-          if (-not (git diff --cached --quiet)) {
-            git commit -m 'Actualiza CER index'
-            git push origin main
-          } else {
-            Write-Host 'No hay cambios para commitear'
-          }
+          & 'C:\Program Files\Python313\python.exe' update_cer.py
