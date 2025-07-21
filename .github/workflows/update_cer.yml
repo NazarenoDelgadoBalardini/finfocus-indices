@@ -22,7 +22,7 @@ jobs:
           & 'C:\Program Files\Python313\python.exe' 'update_cer.py'
 
       - name: Commit and push changes via SSH
-        shell: bash
+        shell: pwsh
         run: |
           # Configura nombre y email
           git config user.name "${{ github.actor }}"
@@ -31,9 +31,9 @@ jobs:
           git remote set-url origin git@github.com:NazarenoDelgadoBalardini/finfocus-indices.git
           # Añade y commitea si hay cambios
           git add indices/cer.json
-          if git diff --cached --quiet; then
-            echo "No hay cambios para commitear"
-          else
-            git commit -m "Actualiza CER index"
+          if (-not (git diff --cached --quiet)) {
+            git commit -m 'Actualiza CER index'
             git push origin main
-          fi
+          } else {
+            Write-Host 'No hay cambios para commitear'
+          }
