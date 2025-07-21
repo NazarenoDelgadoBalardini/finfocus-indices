@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 """
 Script para actualizar indices/activa.json
-Extrae T.N.A. (30 días) desde la web del BNA, calcula el porcentaje mensual,
-lo aplica al último valor del índice y guarda el nuevo valor.
+Extrae T.N.A. (30 días) desde la web del BNA, calcula la tasa mensual,
+la aplica al último valor del índice y guarda el nuevo valor, luego sube vía API.
 """
+
 import requests
 from bs4 import BeautifulSoup
 import json
 import os
 from datetime import datetime
 import base64
+import urllib3
+
+# Deshabilita warnings de SSL en entornos self-hosted
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # Configuración
 BNA_URL = 'https://www.bna.com.ar/Home/InformacionAlUsuarioFinanciero'
@@ -17,52 +22,55 @@ ACTIVA_JSON_PATH = os.path.join(os.path.dirname(__file__), 'indices', 'activa.js
 REPO = 'NazarenoDelgadoBalardini/finfocus-indices'
 BRANCH = 'main'
 
-# GitHub API push helper (igual que en update_cer)
-import urllib3
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 def fetch_monthly_rate():
     """Descarga la página del BNA y extrae el T.N.A. (30 días) para calcular la tasa mensual."""
-    resp = requests.get(BNA_URL)
+    resp = requests.get(BNA_URL, verify=False)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, 'html.parser')
-    # Busca el texto que contiene "T.N.A. (30 días)"
+
+    # Busca el texto que contenga "T.N.A. (30 días)"
     elem = soup.find(text=lambda t: 'T.N.A. (30 días)' in t)
     if not elem:
         raise RuntimeError('No se encontró el elemento T.N.A. (30 días)')
-    # El texto completo tiene formato "T.N.A. (30 días) = 36,52%"
-    txt = elem.strip()
-    # Extrae lo que hay después del signo =
+
+    txt = elem.strip()  # "T.N.A. (30 días) = 36,52%"
     try:
         percent_str = txt.split('=')[1].strip().rstrip('%')
     except Exception:
         raise RuntimeError(f'Formato inesperado: {txt}')
-    # Convierte "36,52" a float 36.52
+
     annual = float(percent_str.replace('.', '').replace(',', '.'))
-    # Calcula mensual: anual/365*30
     monthly = (annual / 365.0) * 30.0
     return monthly
 
 
 def load_data():
+    """Carga activa.json como dict de fecha->valor."""
     if not os.path.exists(ACTIVA_JSON_PATH):
         return {}
     with open(ACTIVA_JSON_PATH, 'r', encoding='utf-8') as f:
         return json.load(f)
 
- def save_data(data):
+
+def save_data(data):
+    """Guarda el dict ordenado en activa.json."""
     ordered = {date: data[date] for date in sorted(data.keys())}
     with open(ACTIVA_JSON_PATH, 'w', encoding='utf-8') as f:
         json.dump(ordered, f, ensure_ascii=False, indent=2)
 
+
 def push_via_github_api(file_path, repo, branch, token):
+    """Actualiza el archivo en GitHub vía API usando el token."""
     with open(file_path, 'rb') as f:
         content_b64 = base64.b64encode(f.read()).decode()
+
     headers = {'Authorization': f'token {token}'}
     url_get = f'https://api.github.com/repos/{repo}/contents/{file_path}?ref={branch}'
     r1 = requests.get(url_get, headers=headers)
     r1.raise_for_status()
     sha = r1.json()['sha']
+
     url_put = f'https://api.github.com/repos/{repo}/contents/{file_path}'
     payload = {
         'message': 'Actualiza Activa index',
@@ -74,30 +82,34 @@ def push_via_github_api(file_path, repo, branch, token):
     r2.raise_for_status()
     print('✅ Push Activa via API completado')
 
- def main():
-    # 1) obtener tasa mensual
+
+def main():
+    # 1) Obtiene la tasa mensual
     monthly = fetch_monthly_rate()
     print(f'Tasa mensual calculada: {monthly:.6f}%')
 
-    # 2) cargar datos existentes
+    # 2) Carga datos existentes
     data = load_data()
-    # ultima fecha
     fechas = sorted(data.keys())
-    last_date = fechas[-1]
-    last_val = data[last_date]
-    # 3) calcular nuevo valor
-    new_val = last_val * (1 + monthly/100)
-    # 4) fecha de hoy
+    last_date = fechas[-1] if fechas else None
+    last_val = data.get(last_date, 100.0)  # default 100 si no hay datos
+
+    # 3) Calcula nuevo valor
+    new_val = last_val * (1 + monthly / 100)
+
+    # 4) Fecha de hoy
     today = datetime.today().strftime('%Y-%m-%d')
     if today in data:
         print('Ya existe entrada para hoy. No hay cambios.')
         return False
+
     data[today] = new_val
     save_data(data)
     print(f'Guardado {today} -> {new_val:.6f}')
     return True
 
- if __name__ == '__main__':
+
+if __name__ == '__main__':
     changed = main()
     if changed:
         token = os.environ.get('PAT')
