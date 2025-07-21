@@ -11,6 +11,7 @@ import json
 import os
 from datetime import datetime
 import base64
+import re
 import urllib3
 
 # Deshabilita warnings de SSL en entornos self-hosted
@@ -29,16 +30,14 @@ def fetch_monthly_rate():
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, 'html.parser')
 
-    # Busca el texto que contenga "T.N.A. (30 días)"
-    elem = soup.find(text=lambda t: 'T.N.A. (30 días)' in t)
-    if not elem:
-        raise RuntimeError('No se encontró el elemento T.N.A. (30 días)')
-
-    txt = elem.strip()  # "T.N.A. (30 días) = 36,52%"
-    try:
-        percent_str = txt.split('=')[1].strip().rstrip('%')
-    except Exception:
-        raise RuntimeError(f'Formato inesperado: {txt}')
+    # Busca cadena que incluya 'T.N.A.' y porcentaje
+    text = soup.find(string=re.compile(r"T\.N\.A\..*?=\s*[0-9]+,[0-9]+%"))
+    if not text:
+        raise RuntimeError('No se encontró el valor de T.N.A. (30 días)')
+    m = re.search(r"=\s*([0-9]+,[0-9]+)%", text)
+    if not m:
+        raise RuntimeError(f'Formato inesperado en texto: {text}')
+    percent_str = m.group(1)
 
     annual = float(percent_str.replace('.', '').replace(',', '.'))
     monthly = (annual / 365.0) * 30.0
@@ -46,7 +45,6 @@ def fetch_monthly_rate():
 
 
 def load_data():
-    """Carga activa.json como dict de fecha->valor."""
     if not os.path.exists(ACTIVA_JSON_PATH):
         return {}
     with open(ACTIVA_JSON_PATH, 'r', encoding='utf-8') as f:
@@ -54,55 +52,39 @@ def load_data():
 
 
 def save_data(data):
-    """Guarda el dict ordenado en activa.json."""
     ordered = {date: data[date] for date in sorted(data.keys())}
     with open(ACTIVA_JSON_PATH, 'w', encoding='utf-8') as f:
         json.dump(ordered, f, ensure_ascii=False, indent=2)
 
 
 def push_via_github_api(file_path, repo, branch, token):
-    """Actualiza el archivo en GitHub vía API usando el token."""
     with open(file_path, 'rb') as f:
         content_b64 = base64.b64encode(f.read()).decode()
-
     headers = {'Authorization': f'token {token}'}
     url_get = f'https://api.github.com/repos/{repo}/contents/{file_path}?ref={branch}'
     r1 = requests.get(url_get, headers=headers)
     r1.raise_for_status()
     sha = r1.json()['sha']
-
     url_put = f'https://api.github.com/repos/{repo}/contents/{file_path}'
-    payload = {
-        'message': 'Actualiza Activa index',
-        'content': content_b64,
-        'sha': sha,
-        'branch': branch
-    }
+    payload = {'message': 'Actualiza Activa index', 'content': content_b64, 'sha': sha, 'branch': branch}
     r2 = requests.put(url_put, json=payload, headers=headers)
     r2.raise_for_status()
     print('✅ Push Activa via API completado')
 
 
 def main():
-    # 1) Obtiene la tasa mensual
     monthly = fetch_monthly_rate()
     print(f'Tasa mensual calculada: {monthly:.6f}%')
 
-    # 2) Carga datos existentes
     data = load_data()
     fechas = sorted(data.keys())
-    last_date = fechas[-1] if fechas else None
-    last_val = data.get(last_date, 100.0)  # default 100 si no hay datos
-
-    # 3) Calcula nuevo valor
+    last_val = data[fechas[-1]] if fechas else 100.0
     new_val = last_val * (1 + monthly / 100)
 
-    # 4) Fecha de hoy
     today = datetime.today().strftime('%Y-%m-%d')
     if today in data:
         print('Ya existe entrada para hoy. No hay cambios.')
         return False
-
     data[today] = new_val
     save_data(data)
     print(f'Guardado {today} -> {new_val:.6f}')
