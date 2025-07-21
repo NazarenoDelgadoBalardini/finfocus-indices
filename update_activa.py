@@ -18,7 +18,8 @@ import urllib3
 # Deshabilita warnings de SSL en entornos self-hosted
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Configuración\ nBNA_URL = 'https://www.bna.com.ar/Home/InformacionAlUsuarioFinanciero'
+# Configuración
+BNA_URL = 'https://www.bna.com.ar/Home/InformacionAlUsuarioFinanciero'
 ACTIVA_JSON_PATH = os.path.join(os.path.dirname(__file__), 'indices', 'activa.json')
 REPO = 'NazarenoDelgadoBalardini/finfocus-indices'
 BRANCH = 'main'
@@ -42,6 +43,8 @@ def fetch_monthly_rate_and_date():
     if not text:
         raise RuntimeError('No se encontró el valor de T.N.A. (30 días)')
     m = re.search(r"=\s*([0-9]+,[0-9]+)%", text)
+    if not m:
+        raise RuntimeError(f'Formato inesperado en texto: {text}')
     percent_str = m.group(1)
 
     annual = float(percent_str.replace('.', '').replace(',', '.'))
@@ -50,6 +53,7 @@ def fetch_monthly_rate_and_date():
 
 
 def load_data():
+    """Carga activa.json como dict de fecha->valor."""
     if not os.path.exists(ACTIVA_JSON_PATH):
         return {}
     with open(ACTIVA_JSON_PATH, 'r', encoding='utf-8') as f:
@@ -57,12 +61,14 @@ def load_data():
 
 
 def save_data(data):
+    """Guarda el dict ordenado en activa.json."""
     ordered = {date: data[date] for date in sorted(data.keys())}
     with open(ACTIVA_JSON_PATH, 'w', encoding='utf-8') as f:
         json.dump(ordered, f, ensure_ascii=False, indent=2)
 
 
 def push_via_github_api(file_path, repo, branch, token):
+    """Actualiza el archivo en GitHub vía API usando el token."""
     with open(file_path, 'rb') as f:
         content_b64 = base64.b64encode(f.read()).decode()
     headers = {'Authorization': f'token {token}'}
