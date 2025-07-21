@@ -3,7 +3,7 @@ name: Actualizar CER
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'  # Ejecuta diariamente a medianoche UTC
+    - cron: '0 0 * * *'  # Diariamente a medianoche UTC
 
 jobs:
   update-cer:
@@ -12,8 +12,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-        with:
-          persist-credentials: true
 
       - name: Install Python requirements
         run: |
@@ -23,12 +21,17 @@ jobs:
         run: |
           & 'C:\Program Files\Python313\python.exe' 'update_cer.py'
 
-      - name: Commit changes
-        uses: EndBug/add-and-commit@v9
-        with:
-          author_name: 'github-actions'
-          author_email: 'github-actions@users.noreply.github.com'
-          message: 'Actualiza CER index'
-          add: 'indices/cer.json'
-          push: true
-          github_token: '${{ secrets.GITHUB_TOKEN }}'
+      - name: Commit and push changes
+        shell: bash
+        env:
+          PAT: ${{ secrets.PAT }}
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git add indices/cer.json
+          if git diff --cached --quiet; then
+            echo "No hay cambios para commitear"
+          else
+            git commit -m "Actualiza CER index"
+            git push https://x-access-token:${PAT}@github.com/NazarenoDelgadoBalardini/finfocus-indices.git HEAD:main
+          fi
