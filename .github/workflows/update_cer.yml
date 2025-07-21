@@ -16,10 +16,12 @@ jobs:
           persist-credentials: true
 
       - name: Install Python requirements
-        run: py -3 -m pip install requests beautifulsoup4
+        run: |
+          "C:\Program Files\Python313\python.exe" -m pip install requests beautifulsoup4
 
       - name: Run update_cer script
-        run: python update_cer.py
+        run: |
+          "C:\Program Files\Python313\python.exe" update_cer.py
 
       - name: Commit and push changes
         run: |
