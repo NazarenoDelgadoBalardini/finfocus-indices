@@ -23,11 +23,13 @@ jobs:
 
       - name: Commit and push changes via SSH
         shell: powershell
+        env:
+          GIT_SSH_COMMAND: "ssh -i C:/actions-runner/id_ed25519 -o StrictHostKeyChecking=no"
         run: |
           # Configura nombre y email
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
-          # Cambia el remoto a SSH
+          # Establece remoto SSH
           git remote set-url origin git@github.com:NazarenoDelgadoBalardini/finfocus-indices.git
           # Añade y commitea si hay cambios
           git add indices/cer.json
