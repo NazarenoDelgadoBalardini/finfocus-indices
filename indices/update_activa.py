@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+"""
+Script para actualizar indices/activa.json
+Extrae T.N.A. (30 días) desde la web del BNA, calcula el porcentaje mensual,
+lo aplica al último valor del índice y guarda el nuevo valor.
+"""
+import requests
+from bs4 import BeautifulSoup
+import json
+import os
+from datetime import datetime
+import base64
+
+# Configuración
+BNA_URL = 'https://www.bna.com.ar/Home/InformacionAlUsuarioFinanciero'
+ACTIVA_JSON_PATH = os.path.join(os.path.dirname(__file__), 'indices', 'activa.json')
+REPO = 'NazarenoDelgadoBalardini/finfocus-indices'
+BRANCH = 'main'
+
+# GitHub API push helper (igual que en update_cer)
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+def fetch_monthly_rate():
+    """Descarga la página del BNA y extrae el T.N.A. (30 días) para calcular la tasa mensual."""
+    resp = requests.get(BNA_URL)
+    resp.raise_for_status()
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    # Busca el texto que contiene "T.N.A. (30 días)"
+    elem = soup.find(text=lambda t: 'T.N.A. (30 días)' in t)
+    if not elem:
+        raise RuntimeError('No se encontró el elemento T.N.A. (30 días)')
+    # El texto completo tiene formato "T.N.A. (30 días) = 36,52%"
+    txt = elem.strip()
+    # Extrae lo que hay después del signo =
+    try:
+        percent_str = txt.split('=')[1].strip().rstrip('%')
+    except Exception:
+        raise RuntimeError(f'Formato inesperado: {txt}')
+    # Convierte "36,52" a float 36.52
+    annual = float(percent_str.replace('.', '').replace(',', '.'))
+    # Calcula mensual: anual/365*30
+    monthly = (annual / 365.0) * 30.0
+    return monthly
+
+
+def load_data():
+    if not os.path.exists(ACTIVA_JSON_PATH):
+        return {}
+    with open(ACTIVA_JSON_PATH, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+ def save_data(data):
+    ordered = {date: data[date] for date in sorted(data.keys())}
+    with open(ACTIVA_JSON_PATH, 'w', encoding='utf-8') as f:
+        json.dump(ordered, f, ensure_ascii=False, indent=2)
+
+def push_via_github_api(file_path, repo, branch, token):
+    with open(file_path, 'rb') as f:
+        content_b64 = base64.b64encode(f.read()).decode()
+    headers = {'Authorization': f'token {token}'}
+    url_get = f'https://api.github.com/repos/{repo}/contents/{file_path}?ref={branch}'
+    r1 = requests.get(url_get, headers=headers)
+    r1.raise_for_status()
+    sha = r1.json()['sha']
+    url_put = f'https://api.github.com/repos/{repo}/contents/{file_path}'
+    payload = {
+        'message': 'Actualiza Activa index',
+        'content': content_b64,
+        'sha': sha,
+        'branch': branch
+    }
+    r2 = requests.put(url_put, json=payload, headers=headers)
+    r2.raise_for_status()
+    print('✅ Push Activa via API completado')
+
+ def main():
+    # 1) obtener tasa mensual
+    monthly = fetch_monthly_rate()
+    print(f'Tasa mensual calculada: {monthly:.6f}%')
+
+    # 2) cargar datos existentes
+    data = load_data()
+    # ultima fecha
+    fechas = sorted(data.keys())
+    last_date = fechas[-1]
+    last_val = data[last_date]
+    # 3) calcular nuevo valor
+    new_val = last_val * (1 + monthly/100)
+    # 4) fecha de hoy
+    today = datetime.today().strftime('%Y-%m-%d')
+    if today in data:
+        print('Ya existe entrada para hoy. No hay cambios.')
+        return False
+    data[today] = new_val
+    save_data(data)
+    print(f'Guardado {today} -> {new_val:.6f}')
+    return True
+
+ if __name__ == '__main__':
+    changed = main()
+    if changed:
+        token = os.environ.get('PAT')
+        if not token:
+            raise RuntimeError('Variable PAT no definida')
+        push_via_github_api('indices/activa.json', REPO, BRANCH, token)
