@@ -1,18 +1,23 @@
 name: Actualizar Activa
 
 on:
+  workflow_dispatch:        # <— añade esto para que aparezca “Run workflow”
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *'     # sigue corriendo cada día a medianoche UTC
 
 jobs:
   update-activa:
     runs-on: self-hosted
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Install deps
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Instala dependencias
         run: |
           & 'C:\Program Files\Python313\python.exe' -m pip install requests beautifulsoup4
-      - name: Run update_activa
+
+      - name: Ejecuta update_activa.py
         env:
           PAT: ${{ secrets.PAT }}
         run: |
