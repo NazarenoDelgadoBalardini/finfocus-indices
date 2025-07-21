@@ -3,7 +3,7 @@ name: Actualizar CER
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'  # Diariamente a medianoche UTC
+    - cron: '0 0 * * *'  # Ejecuta diariamente a medianoche UTC
 
 jobs:
   update-cer:
@@ -22,16 +22,16 @@ jobs:
           & 'C:\Program Files\Python313\python.exe' 'update_cer.py'
 
       - name: Commit and push changes
-        shell: bash
+        shell: pwsh
         env:
           PAT: ${{ secrets.PAT }}
         run: |
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
           git add indices/cer.json
-          if git diff --cached --quiet; then
-            echo "No hay cambios para commitear"
-          else
+          if (-not (git diff --cached --quiet)) {
             git commit -m "Actualiza CER index"
-            git push https://x-access-token:${PAT}@github.com/NazarenoDelgadoBalardini/finfocus-indices.git HEAD:main
-          fi
+            & 'C:\Program Files\Git\cmd\git.exe' push https://x-access-token:${env:PAT}@github.com/NazarenoDelgadoBalardini/finfocus-indices.git HEAD:main
+          } else {
+            Write-Host "No hay cambios para commitear"
+          }
