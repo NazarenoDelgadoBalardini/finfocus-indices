@@ -31,22 +31,28 @@ def fetch_monthly_rate_and_date():
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, 'html.parser')
 
-    # 1) Fecha de vigencia: texto 'vigente desde DD/MM/YYYY'
-    vigente_elem = soup.find(string=re.compile(r'vigente desde\s*\d{1,2}/\d{1,2}/\d{4}'))
-    if not vigente_elem:
-        raise RuntimeError('No se encontró la fecha de vigencia')
-    mdate = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', vigente_elem)
-    fecha_vig = datetime.strptime(mdate.group(1), '%d/%m/%Y').strftime('%Y-%m-%d')
-
-    # 2) Tasa anual: 'T.N.A. (30 días) = XX,XX%'
-    text = soup.find(string=re.compile(r"T\.N\.A\.\s*\(30 días\).*?=\s*[0-9]+,[0-9]+%"))
-    if not text:
+    # 1) localizar el texto de T.N.A.
+    tna_elem = soup.find(string=re.compile(r"T\.N\.A\..*?=\s*[0-9]+,[0-9]+%"))
+    if not tna_elem:
         raise RuntimeError('No se encontró el valor de T.N.A. (30 días)')
-    m = re.search(r"=\s*([0-9]+,[0-9]+)%", text)
-    if not m:
-        raise RuntimeError(f'Formato inesperado en texto: {text}')
-    percent_str = m.group(1)
+    mval = re.search(r"=\s*([0-9]+,[0-9]+)%", tna_elem)
+    percent_str = mval.group(1)
 
+    # 2) buscar fecha previa a ese elemento en el flujo de texto
+    date_pattern = re.compile(r"(\d{1,2}/\d{1,2}/\d{4})")
+    texts = list(soup.stripped_strings)
+    fecha_vig = None
+    if tna_elem in texts:
+        idx = texts.index(tna_elem)
+        for prev in reversed(texts[:idx]):
+            mdate = date_pattern.search(prev)
+            if mdate:
+                fecha_vig = datetime.strptime(mdate.group(1), '%d/%m/%Y').strftime('%Y-%m-%d')
+                break
+    if not fecha_vig:
+        raise RuntimeError('No se encontró la fecha de vigencia asociada')
+
+    # 3) calcular tasa mensual
     annual = float(percent_str.replace('.', '').replace(',', '.'))
     monthly = (annual / 365.0) * 30.0
     return fecha_vig, monthly
@@ -89,19 +95,13 @@ def push_via_github_api(file_path, repo, branch, token):
 
 
 def main():
-    # 1) obtener fecha y tasa mensual
     fecha_iso, monthly = fetch_monthly_rate_and_date()
     print(f'Fecha de vigencia: {fecha_iso}, tasa mensual: {monthly:.6f}%')
 
-    # 2) cargar datos existentes
     data = load_data()
-    fechas = sorted(data.keys())
-    last_val = data[fechas[-1]] if fechas else 100.0
-
-    # 3) calcular nuevo valor
+    last_val = data.get(sorted(data.keys())[-1], 100.0)
     new_val = last_val * (1 + monthly / 100)
 
-    # 4) insertar con la fecha de vigencia
     if fecha_iso in data:
         print(f'Ya existe entrada para fecha {fecha_iso}. No hay cambios.')
         return False
