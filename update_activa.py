@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """
 Script para actualizar indices/activa.json
-Extrae T.N.A. (30 días) desde la web del BNA, calcula la tasa mensual,
-la aplica al último valor del índice y guarda el nuevo valor, luego sube vía API.
+Extrae T.N.A. (30 días) desde la web del BNA, obtiene la fecha de vigencia,
+calcula la tasa mensual, la aplica al último valor del índice y guarda el nuevo valor,
+luego sube vía API.
 """
 
 import requests
@@ -17,31 +18,35 @@ import urllib3
 # Deshabilita warnings de SSL en entornos self-hosted
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Configuración
-BNA_URL = 'https://www.bna.com.ar/Home/InformacionAlUsuarioFinanciero'
+# Configuración\ nBNA_URL = 'https://www.bna.com.ar/Home/InformacionAlUsuarioFinanciero'
 ACTIVA_JSON_PATH = os.path.join(os.path.dirname(__file__), 'indices', 'activa.json')
 REPO = 'NazarenoDelgadoBalardini/finfocus-indices'
 BRANCH = 'main'
 
 
-def fetch_monthly_rate():
-    """Descarga la página del BNA y extrae el T.N.A. (30 días) para calcular la tasa mensual."""
+def fetch_monthly_rate_and_date():
+    """Extrae fecha de vigencia y T.N.A. (30 días), devuelve (fecha_iso, tasa_mensual)."""
     resp = requests.get(BNA_URL, verify=False)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, 'html.parser')
 
-    # Busca cadena que incluya 'T.N.A.' y porcentaje
-    text = soup.find(string=re.compile(r"T\.N\.A\..*?=\s*[0-9]+,[0-9]+%"))
+    # 1) Fecha de vigencia: texto 'vigente desde DD/MM/YYYY'
+    vigente_elem = soup.find(string=re.compile(r'vigente desde\s*\d{1,2}/\d{1,2}/\d{4}'))
+    if not vigente_elem:
+        raise RuntimeError('No se encontró la fecha de vigencia')
+    mdate = re.search(r'(\d{1,2}/\d{1,2}/\d{4})', vigente_elem)
+    fecha_vig = datetime.strptime(mdate.group(1), '%d/%m/%Y').strftime('%Y-%m-%d')
+
+    # 2) Tasa anual: 'T.N.A. (30 días) = XX,XX%'
+    text = soup.find(string=re.compile(r"T\.N\.A\.\s*\(30 días\).*?=\s*[0-9]+,[0-9]+%"))
     if not text:
         raise RuntimeError('No se encontró el valor de T.N.A. (30 días)')
     m = re.search(r"=\s*([0-9]+,[0-9]+)%", text)
-    if not m:
-        raise RuntimeError(f'Formato inesperado en texto: {text}')
     percent_str = m.group(1)
 
     annual = float(percent_str.replace('.', '').replace(',', '.'))
     monthly = (annual / 365.0) * 30.0
-    return monthly
+    return fecha_vig, monthly
 
 
 def load_data():
@@ -66,28 +71,37 @@ def push_via_github_api(file_path, repo, branch, token):
     r1.raise_for_status()
     sha = r1.json()['sha']
     url_put = f'https://api.github.com/repos/{repo}/contents/{file_path}'
-    payload = {'message': 'Actualiza Activa index', 'content': content_b64, 'sha': sha, 'branch': branch}
+    payload = {
+        'message': 'Actualiza Activa index',
+        'content': content_b64,
+        'sha': sha,
+        'branch': branch
+    }
     r2 = requests.put(url_put, json=payload, headers=headers)
     r2.raise_for_status()
     print('✅ Push Activa via API completado')
 
 
 def main():
-    monthly = fetch_monthly_rate()
-    print(f'Tasa mensual calculada: {monthly:.6f}%')
+    # 1) obtener fecha y tasa mensual
+    fecha_iso, monthly = fetch_monthly_rate_and_date()
+    print(f'Fecha de vigencia: {fecha_iso}, tasa mensual: {monthly:.6f}%')
 
+    # 2) cargar datos existentes
     data = load_data()
     fechas = sorted(data.keys())
     last_val = data[fechas[-1]] if fechas else 100.0
+
+    # 3) calcular nuevo valor
     new_val = last_val * (1 + monthly / 100)
 
-    today = datetime.today().strftime('%Y-%m-%d')
-    if today in data:
-        print('Ya existe entrada para hoy. No hay cambios.')
+    # 4) insertar con la fecha de vigencia
+    if fecha_iso in data:
+        print(f'Ya existe entrada para fecha {fecha_iso}. No hay cambios.')
         return False
-    data[today] = new_val
+    data[fecha_iso] = new_val
     save_data(data)
-    print(f'Guardado {today} -> {new_val:.6f}')
+    print(f'Guardado {fecha_iso} -> {new_val:.6f}')
     return True
 
 
