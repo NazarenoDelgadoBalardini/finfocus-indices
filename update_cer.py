@@ -19,7 +19,8 @@ CER_JSON_PATH = os.path.join(os.path.dirname(__file__), 'indices', 'cer.json')
 
 def fetch_cer_from_bcra():
     """Descarga la página del BCRA y extrae la fecha y el valor del CER más reciente."""
-    resp = requests.get(BCRA_URL)
+    # Deshabilita la verificación de SSL para entornos self‑hosted
+resp = requests.get(BCRA_URL, verify=False)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, 'html.parser')
 
