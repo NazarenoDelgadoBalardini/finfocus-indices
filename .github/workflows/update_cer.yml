@@ -31,3 +31,5 @@ jobs:
           message: 'Actualiza CER index'
           add: 'indices/cer.json'
           push: true
+          token: '${{ secrets.GITHUB_TOKEN }}'
+
