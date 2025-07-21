@@ -2,15 +2,15 @@
 """
 Script para actualizar indices/activa.json
 Extrae T.N.A. (30 días) desde la web del BNA, obtiene la fecha de vigencia,
-calcula la tasa mensual, la aplica al último valor del índice y guarda el nuevo valor,
-luego sube vía API.
+calcula la tasa mensual, y genera entradas diarias desde la última fecha existente
+(o desde la fecha de vigencia) hasta hoy, aplicando la tasa compuesta diaria.
+Luego sube vía API.
 """
-
 import requests
 from bs4 import BeautifulSoup
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import base64
 import re
 import urllib3
@@ -38,7 +38,7 @@ def fetch_monthly_rate_and_date():
     mval = re.search(r"=\s*([0-9]+,[0-9]+)%", tna_elem)
     percent_str = mval.group(1)
 
-    # 2) buscar fecha previa a ese elemento en el flujo de texto
+    # 2) buscar la fecha de vigencia previa en el flujo de texto
     date_pattern = re.compile(r"(\d{1,2}/\d{1,2}/\d{4})")
     texts = list(soup.stripped_strings)
     fecha_vig = None
@@ -47,19 +47,20 @@ def fetch_monthly_rate_and_date():
         for prev in reversed(texts[:idx]):
             mdate = date_pattern.search(prev)
             if mdate:
-                fecha_vig = datetime.strptime(mdate.group(1), '%d/%m/%Y').strftime('%Y-%m-%d')
+                fecha_vig = datetime.strptime(mdate.group(1), '%d/%m/%Y')
                 break
     if not fecha_vig:
         raise RuntimeError('No se encontró la fecha de vigencia asociada')
 
-    # 3) calcular tasa mensual
+    # 3) calcular tasa mensual y tasa diaria equivalente
     annual = float(percent_str.replace('.', '').replace(',', '.'))
     monthly = (annual / 365.0) * 30.0
-    return fecha_vig, monthly
+    # tasa diaria simple equivalente (aproximación): mensual/30
+    daily_rate = monthly / 30.0
+    return fecha_vig.date(), daily_rate
 
 
 def load_data():
-    """Carga activa.json como dict de fecha->valor."""
     if not os.path.exists(ACTIVA_JSON_PATH):
         return {}
     with open(ACTIVA_JSON_PATH, 'r', encoding='utf-8') as f:
@@ -67,14 +68,12 @@ def load_data():
 
 
 def save_data(data):
-    """Guarda el dict ordenado en activa.json."""
     ordered = {date: data[date] for date in sorted(data.keys())}
     with open(ACTIVA_JSON_PATH, 'w', encoding='utf-8') as f:
         json.dump(ordered, f, ensure_ascii=False, indent=2)
 
 
 def push_via_github_api(file_path, repo, branch, token):
-    """Actualiza el archivo en GitHub vía API usando el token."""
     with open(file_path, 'rb') as f:
         content_b64 = base64.b64encode(f.read()).decode()
     headers = {'Authorization': f'token {token}'}
@@ -95,26 +94,49 @@ def push_via_github_api(file_path, repo, branch, token):
 
 
 def main():
-    fecha_iso, monthly = fetch_monthly_rate_and_date()
-    print(f'Fecha de vigencia: {fecha_iso}, tasa mensual: {monthly:.6f}%')
+    # Extraer fecha de vigencia y tasa diaria
+    fecha_vig, daily_rate = fetch_monthly_rate_and_date()
+    print(f'Fecha de vigencia BNA: {fecha_vig}, tasa diaria: {daily_rate*100:.6f}%')
 
+    # Cargar datos existentes
     data = load_data()
-    last_val = data.get(sorted(data.keys())[-1], 100.0)
-    new_val = last_val * (1 + monthly / 100)
+    # Identificar última fecha en JSON
+    fechas = [datetime.strptime(d, '%Y-%m-%d').date() for d in data.keys()]
+    last_date = max(fechas) if fechas else None
+    # Decide punto de inicio
+    start_date = last_date + timedelta(days=1) if last_date and last_date >= fecha_vig else fecha_vig
 
-    if fecha_iso in data:
-        print(f'Ya existe entrada para fecha {fecha_iso}. No hay cambios.')
+    # No hay nuevas fechas si ya llegó hasta hoy
+    today = datetime.today().date()
+    if start_date > today:
+        print('No hay fechas nuevas para agregar.')
         return False
-    data[fecha_iso] = new_val
+
+    # Iterar del start_date hasta hoy
+    prev_val = data.get(last_date.strftime('%Y-%m-%d'), 100.0)
+    new = False
+    d = start_date
+    while d <= today:
+        key = d.strftime('%Y-%m-%d')
+        if key not in data:
+            prev_val = prev_val * (1 + daily_rate)
+            data[key] = prev_val
+            print(f'Agregado {key} -> {prev_val:.6f}')
+            new = True
+        d += timedelta(days=1)
+
+    if not new:
+        print('Todas las fechas ya están presentes.')
+        return False
+
     save_data(data)
-    print(f'Guardado {fecha_iso} -> {new_val:.6f}')
+    # Empujar cambios
+    token = os.environ.get('PAT')
+    if not token:
+        raise RuntimeError('Variable PAT no definida')
+    push_via_github_api('indices/activa.json', REPO, BRANCH, token)
     return True
 
 
 if __name__ == '__main__':
-    changed = main()
-    if changed:
-        token = os.environ.get('PAT')
-        if not token:
-            raise RuntimeError('Variable PAT no definida')
-        push_via_github_api('indices/activa.json', REPO, BRANCH, token)
+    main()
