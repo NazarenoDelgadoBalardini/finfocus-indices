@@ -3,7 +3,7 @@ name: Actualizar CER
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'  # Ejecuta diariamente a medianoche UTC
+    - cron: '0 0 * * *'
 
 jobs:
   update-cer:
@@ -22,7 +22,7 @@ jobs:
           & 'C:\Program Files\Python313\python.exe' 'update_cer.py'
 
       - name: Commit and push changes via SSH
-        shell: pwsh
+        shell: powershell
         run: |
           # Configura nombre y email
           git config user.name "${{ github.actor }}"
