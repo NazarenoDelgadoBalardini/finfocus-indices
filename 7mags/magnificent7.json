@@ -49,7 +49,27 @@
       "peNow": 34.42764810737309,
       "evEbitdaNow": 25.054102455027216,
       "evSalesNow": 8.54188655908129,
-      "fcfSalesNow": 0.23538452126032428
+      "fcfSalesNow": 0.23538452126032428,
+      "priceByYear": [
+        112.28,
+        146.92,
+        150.43,
+        171.21,
+        227.79
+      ],
+      "ttmRefs": {
+        "priceRefTTM": 227.79,
+        "sharesRefTTM": 15343783000,
+        "netDebtRefTTM": 89116000000,
+        "peTTMRef": 34.42764810737309,
+        "evEbitdaTTMRef": 25.054102455027216,
+        "psTTMRef": 8.329509305598043,
+        "pfcfTTMRef": 35.386818389752975,
+        "earningsTTM": 101521902357.93279,
+        "ebitdaTTM": 143061454147.23483,
+        "revenueTTM": 419611792404.2651,
+        "fcfTTM": 98770120870.2645
+      }
     },
     "MSFT": {
       "years": [
@@ -90,7 +110,27 @@
       "peNow": 38.10514690863383,
       "evEbitdaNow": 24.4170578266163,
       "evSalesNow": 14.079075671090633,
-      "fcfSalesNow": 0.2541884965427156
+      "fcfSalesNow": 0.2541884965427156,
+      "priceByYear": [
+        270.9,
+        256.83,
+        340.54,
+        456.73,
+        497.41
+      ],
+      "ttmRefs": {
+        "priceRefTTM": 497.41,
+        "sharesRefTTM": 7433000000,
+        "netDebtRefTTM": 81942000000,
+        "peTTMRef": 38.10514690863383,
+        "evEbitdaTTMRef": 24.4170578266163,
+        "psTTMRef": 13.773807225511494,
+        "pfcfTTMRef": 54.18737438103085,
+        "earningsTTM": 97027536433.98973,
+        "ebitdaTTM": 154776654781.0858,
+        "revenueTTM": 268426040053.1852,
+        "fcfTTM": 68230811554.0339
+      }
     },
     "GOOGL": {
       "years": [
@@ -131,7 +171,27 @@
       "peNow": 21.126156109125834,
       "evEbitdaNow": 15.602340690785303,
       "evSalesNow": 6.57700737603953,
-      "fcfSalesNow": 0.17966661191871813
+      "fcfSalesNow": 0.17966661191871813,
+      "priceByYear": [
+        87.63,
+        144.85,
+        88.23,
+        139.69,
+        189.3
+      ],
+      "ttmRefs": {
+        "priceRefTTM": 189.3,
+        "sharesRefTTM": 12319000000,
+        "netDebtRefTTM": 1995000000,
+        "peTTMRef": 21.126156109125834,
+        "evEbitdaTTMRef": 15.602340690785303,
+        "psTTMRef": 6.571385596864827,
+        "pfcfTTMRef": 36.575441183461216,
+        "earningsTTM": 110383861974.42966,
+        "ebitdaTTM": 149591766149.4498,
+        "revenueTTM": 354869862013.9683,
+        "fcfTTM": 63758265780.1127
+      }
     },
     "AMZN": {
       "years": [
@@ -172,7 +232,27 @@
       "peNow": 33.54082281976127,
       "evEbitdaNow": 19.077140730190603,
       "evSalesNow": 3.6249301743598314,
-      "fcfSalesNow": 0.020119754401989143
+      "fcfSalesNow": 0.020119754401989143,
+      "priceByYear": [
+        162.85,
+        166.72,
+        84,
+        151.94,
+        219.39
+      ],
+      "ttmRefs": {
+        "priceRefTTM": 219.39,
+        "sharesRefTTM": 10473000000,
+        "netDebtRefTTM": 52121000000,
+        "peTTMRef": 33.54082281976127,
+        "evEbitdaTTMRef": 19.077140730190603,
+        "psTTMRef": 3.5445252075255436,
+        "pfcfTTMRef": 176.17139537126326,
+        "earningsTTM": 68503729987.39552,
+        "ebitdaTTM": 123173199969.18233,
+        "revenueTTM": 648231098800.4003,
+        "fcfTTM": 13042250503.595613
+      }
     },
     "META": {
       "years": [
@@ -213,7 +293,27 @@
       "peNow": 27.089619198120467,
       "evEbitdaNow": 20.160131387656318,
       "evSalesNow": 10.845326696997699,
-      "fcfSalesNow": 0.28040200442943114
+      "fcfSalesNow": 0.28040200442943114,
+      "priceByYear": [
+        273.16,
+        336.35,
+        120.34,
+        353.96,
+        585.51
+      ],
+      "ttmRefs": {
+        "priceRefTTM": 585.51,
+        "sharesRefTTM": 2534000000,
+        "netDebtRefTTM": 5171000000,
+        "peTTMRef": 27.089619198120467,
+        "evEbitdaTTMRef": 20.160131387656318,
+        "psTTMRef": 10.807659330546297,
+        "pfcfTTMRef": 38.54344533855237,
+        "earningsTTM": 54769405547.89862,
+        "ebitdaTTM": 73851370875.07266,
+        "revenueTTM": 137280635392.2153,
+        "fcfTTM": 38493765333.323074
+      }
     },
     "NVDA": {
       "years": [
@@ -254,7 +354,27 @@
       "peNow": 58.16253809883553,
       "evEbitdaNow": 48.95052106235159,
       "evSalesNow": 30.033714432465963,
-      "fcfSalesNow": 0.4852304481028851
+      "fcfSalesNow": 0.4852304481028851,
+      "priceByYear": [
+        13.24,
+        24.49,
+        19.16,
+        62.47,
+        118.42
+      ],
+      "ttmRefs": {
+        "priceRefTTM": 118.42,
+        "sharesRefTTM": 24555000000,
+        "netDebtRefTTM": 1681000000,
+        "peTTMRef": 58.16253809883553,
+        "evEbitdaTTMRef": 48.95052106235159,
+        "psTTMRef": 30.016361983638014,
+        "pfcfTTMRef": 61.86001332149201,
+        "earningsTTM": 49994432757.71036,
+        "ebitdaTTM": 59437244729.10091,
+        "revenueTTM": 96873935008.68126,
+        "fcfTTM": 47006182893.75218
+      }
     },
     "TSLA": {
       "years": [
@@ -295,7 +415,27 @@
       "peNow": 174.05995249017036,
       "evEbitdaNow": 90.68970018053645,
       "evSalesNow": 11.44529607574145,
-      "fcfSalesNow": 0.06024590163934426
+      "fcfSalesNow": 0.06024590163934426,
+      "priceByYear": [
+        235.22,
+        352.26,
+        123.18,
+        248.48,
+        403.84
+      ],
+      "ttmRefs": {
+        "priceRefTTM": 403.84,
+        "sharesRefTTM": 3213000000,
+        "netDebtRefTTM": -2516000000,
+        "peTTMRef": 174.05995249017036,
+        "evEbitdaTTMRef": 90.68970018053645,
+        "psTTMRef": 11.467532274590164,
+        "pfcfTTMRef": 190.3454336734694,
+        "earningsTTM": 7454545985.086808,
+        "ebitdaTTM": 14279702297.19575,
+        "revenueTTM": 113148835244.62306,
+        "fcfTTM": 6816753598.75393
+      }
     }
   }
 }
