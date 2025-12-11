@@ -1,0 +1,4 @@
+// src/entities/SecureConfig.js
+
+// ⚠️ PONÉ ACÁ TU ACCESS TOKEN REAL DE MERCADO PAGO
+export const MP_ACCESS_TOKEN = 'APP_USR-1284708098773209-112211-fb77ead1e86a64effed320df6238ab9e-164749939';

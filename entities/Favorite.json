@@ -1,0 +1,13 @@
+{
+  "type": "object",
+  "properties": {
+    "userId": { 
+      "type": "string", 
+      "description": "ID del usuario" 
+    },
+    "toolId": { 
+      "type": "string", 
+      "description": "ID de la herramienta favorita" 
+    }
+  }
+}

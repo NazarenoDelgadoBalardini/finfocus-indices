@@ -1,0 +1,60 @@
+{
+  "type": "object",
+  "properties": {
+    "name": { 
+      "type": "string", 
+      "description": "Nombre de la herramienta" 
+    },
+    "description": { 
+      "type": "string", 
+      "description": "Descripción de la herramienta" 
+    },
+
+    "category": { 
+      "type": "string",
+      "enum": [
+        "free",
+        "finfocus_free",
+        "finfocus_start",
+        "finfocus",
+        "finfocus_plus",
+        "finlegal_esencial",
+        "finlegal_plus",
+        "finlegal_total"
+      ],
+      "description": "Categoría y nivel de acceso de la herramienta" 
+    },
+
+    "componentName": {
+      "type": "string",
+      "description": "Nombre del componente React asociado (por ejemplo 'AjustePorInflacion', 'ContadoOEnCuotas')"
+    },
+
+    "iframeUrl": { 
+      "type": "string", 
+      "description": "URL del iframe de la herramienta" 
+    },
+
+    "icon": { 
+      "type": "string", 
+      "description": "Nombre del ícono de Lucide React" 
+    },
+
+    "order": { 
+      "type": "number",
+      "description": "Orden de visualización" 
+    },
+
+    "isActive": { 
+      "type": "boolean",
+      "default": true,
+      "description": "Si la herramienta está activa" 
+    },
+
+    "allowTrial": { 
+      "type": "boolean",
+      "default": false,
+      "description": "Si permite acceso en período de prueba" 
+    }
+  }
+}

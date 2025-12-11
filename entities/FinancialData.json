@@ -1,0 +1,51 @@
+{
+  "type": "object",
+  "properties": {
+    "category": {
+      "type": "string",
+      "description": "Categoría de los datos financieros (generada automáticamente desde el nombre de la hoja)"
+    },
+    "sheetName": {
+      "type": "string",
+      "description": "Nombre de la hoja del Google Sheet"
+    },
+    "googleSheetName": {
+      "type": "string",
+      "description": "Nombre descriptivo del Google Sheet de origen"
+    },
+    "googleSheetId": {
+      "type": "string",
+      "description": "ID del Google Sheet de origen"
+    },
+    "gid": {
+      "type": "string",
+      "description": "GID de la hoja específica (opcional)"
+    },
+    "data": {
+      "type": "array",
+      "description": "Datos sincronizados desde el Google Sheet"
+    },
+    "headers": {
+      "type": "array",
+      "description": "Encabezados de las columnas"
+    },
+    "lastSync": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fecha y hora de la última sincronización"
+    },
+    "rowCount": {
+      "type": "number",
+      "description": "Cantidad de filas de datos"
+    },
+    "columnCount": {
+      "type": "number",
+      "description": "Cantidad de columnas de datos"
+    },
+    "isActive": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si esta categoría está activa"
+    }
+  }
+}

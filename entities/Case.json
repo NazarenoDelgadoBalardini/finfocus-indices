@@ -1,0 +1,56 @@
+{
+  "type": "object",
+  "properties": {
+    "userId": { 
+      "type": "string", 
+      "description": "ID del usuario propietario" 
+    },
+    "title": { 
+      "type": "string", 
+      "description": "Título del juicio" 
+    },
+    "caseNumber": { 
+      "type": "string", 
+      "description": "Número de expediente" 
+    },
+    "court": { 
+      "type": "string", 
+      "description": "Juzgado o tribunal" 
+    },
+    "plaintiff": { 
+      "type": "string", 
+      "description": "Demandante" 
+    },
+    "defendant": { 
+      "type": "string", 
+      "description": "Demandado" 
+    },
+    "status": { 
+      "type": "string",
+      "enum": ["active", "pending", "closed", "archived"],
+      "default": "active",
+      "description": "Estado del juicio" 
+    },
+    "startDate": { 
+      "type": "string",
+      "format": "date",
+      "description": "Fecha de inicio" 
+    },
+    "notes": { 
+      "type": "string", 
+      "description": "Notas adicionales" 
+    },
+    "documents": { 
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "url": { "type": "string" },
+          "uploadDate": { "type": "string", "format": "date-time" }
+        }
+      },
+      "description": "Documentos adjuntos" 
+    }
+  }
+}
